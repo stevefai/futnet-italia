@@ -1,3 +1,6 @@
+import type { ImageMetadata } from 'astro';
+import type { CollectionEntry } from 'astro:content';
+
 export type Lang = 'it' | 'en';
 
 export interface Localized {
@@ -5,40 +8,28 @@ export interface Localized {
   en: string;
 }
 
-/** One formatted piece of text inside a paragraph. */
-export interface Run {
-  t: string;
-  b?: boolean;
-  i?: boolean;
-  /** link address, empty for plain text */
-  u?: string;
-}
-
-export type Block =
-  | { type: 'p'; runs: Run[] }
-  | { type: 'h'; level: 2 | 3; runs: Run[] }
-  | { type: 'li'; ordered: boolean; runs: Run[] };
-
 export interface Post {
   id: string;
   /** an event has an event date, news does not */
   type: 'event' | 'news';
   /** address of the post page, per language (the last part of the URL) */
   slug: Localized;
-  /** YYYY-MM-DD, the day the Google Doc was created */
+  /** YYYY-MM-DD, the day it was published */
   posted: string;
   title: Localized;
   /** short plain-text preview for the cards */
   excerpt: Localized;
-  /** the full formatted text */
-  body: Record<Lang, Block[]>;
+  /** the Markdown file whose text is shown, per language */
+  entry: Record<Lang, CollectionEntry<'news'>>;
   /** YYYY-MM-DD, events only */
   eventDate: string;
   eventTime: string;
   place: string;
   link: string;
-  /** file name inside src/assets/news/, empty if the post has no photo */
-  image: string;
+  /** main picture, if any */
+  cover?: ImageMetadata;
+  /** more photos shown under the text */
+  photos: ImageMetadata[];
 }
 
 /** A player as written in src/data/players.ts */

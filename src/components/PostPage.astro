@@ -1,10 +1,9 @@
 ---
 import { getImage } from 'astro:assets';
+import { render } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import { getUi, postPath, site } from '../content';
 import { assetUrl, formatDate } from '../lib/format';
-import { newsImage } from '../lib/news-images';
-import { blocksToHtml } from '../lib/rich';
 import type { Lang, Post } from '../lib/types';
 import Header from './Header.astro';
 import Footer from './Footer.astro';
@@ -17,11 +16,19 @@ interface Props {
 const { lang, post } = Astro.props;
 const t = getUi(lang);
 const isEvent = post.type === 'event';
-const image = newsImage(post.image);
+const image = post.cover;
 // the whole picture is shown (posters carry their own text); the big version opens full screen
 const shown = image ? await getImage({ src: image, width: 900 }) : null;
 const full = image ? await getImage({ src: image, width: 2000 }) : null;
-const html = blocksToHtml(post.body[lang]);
+const { Content } = await render(post.entry[lang]);
+// the extra photos: a square crop in the grid, the whole photo full screen
+const photos = await Promise.all(
+  post.photos.map(async (src) => ({
+    thumb: await getImage({ src, width: 600, height: 600, fit: 'cover' }),
+    full: (await getImage({ src, width: 2000 })).src,
+  })),
+);
+const zoomable = Boolean(full) || photos.length > 0;
 const posted = post.posted ? formatDate(post.posted, lang, { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 const date = post.eventDate ? formatDate(post.eventDate, lang, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
 const details = [date, post.eventTime, post.place].filter(Boolean);
@@ -111,7 +118,23 @@ const enPath = postPath('en', post.slug.en);
               )
             }
 
-            <div class:list={['post-body', image ? 'mt-6' : '']} set:html={html} />
+            <div class:list={['post-body', image ? 'mt-6' : '']}>
+              <Content />
+            </div>
+
+            {
+              photos.length > 0 && (
+                <ul class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {photos.map((p) => (
+                    <li>
+                      <button type="button" class="group block w-full cursor-zoom-in overflow-hidden rounded-box" data-zoom={p.full} aria-label={t.postEnlarge}>
+                        <img src={p.thumb.src} alt="" width={p.thumb.attributes.width} height={p.thumb.attributes.height} loading="lazy" decoding="async" class="aspect-square h-auto w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )
+            }
 
             {
               post.link && (
@@ -129,7 +152,7 @@ const enPath = postPath('en', post.slug.en);
     </article>
 
     {
-      full && (
+      zoomable && (
         <dialog class="m-0 h-full max-h-none w-full max-w-none bg-black/95 p-0 backdrop:bg-black" data-zoom-dialog aria-label={post.title[lang]}>
           <div class="relative flex h-full w-full items-center justify-center" data-zoom-bg>
             <img alt="" class="max-h-full max-w-full object-contain" data-zoom-img />
@@ -143,20 +166,22 @@ const enPath = postPath('en', post.slug.en);
 </Layout>
 
 <script>
-  // Full screen view of the post's picture
-  const button = document.querySelector<HTMLButtonElement>('[data-zoom]');
+  // Full screen view of the post's pictures
+  const buttons = document.querySelectorAll<HTMLButtonElement>('[data-zoom]');
   const dialog = document.querySelector<HTMLDialogElement>('[data-zoom-dialog]');
   const img = document.querySelector<HTMLImageElement>('[data-zoom-img]');
-  if (button && dialog && img) {
+  if (dialog && img) {
     const close = () => {
       if (dialog.open) dialog.close();
       document.documentElement.style.overflow = '';
     };
-    button.addEventListener('click', () => {
-      img.src = button.dataset.zoom ?? '';
-      dialog.showModal();
-      document.documentElement.style.overflow = 'hidden';
-    });
+    buttons.forEach((button) =>
+      button.addEventListener('click', () => {
+        img.src = button.dataset.zoom ?? '';
+        dialog.showModal();
+        document.documentElement.style.overflow = 'hidden';
+      }),
+    );
     dialog.querySelector('[data-zoom-close]')?.addEventListener('click', close);
     dialog.addEventListener('click', (e) => {
       if (e.target === dialog || (e.target as HTMLElement).hasAttribute('data-zoom-bg')) close();

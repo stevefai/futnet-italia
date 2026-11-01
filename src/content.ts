@@ -1,7 +1,7 @@
 /*
   TEXTS THAT RARELY CHANGE (site description, history, contacts, labels).
   Anything in [square brackets] is a placeholder to replace.
-  News and events come from Google Docs (Drive); the team's players are in src/data/players.ts.
+  News and events are Markdown files in src/content/news/; the team's players are in src/data/players.ts.
 */
 import type { Lang } from './lib/types';
 

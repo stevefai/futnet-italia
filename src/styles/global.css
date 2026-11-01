@@ -78,7 +78,7 @@ summary::-webkit-details-marker {
   display: none;
 }
 
-/* Text of a news / event post (comes from a Google Doc; Tailwind resets list and heading styles) */
+/* Text of a news / event post (Markdown from src/content/news/; Tailwind resets list and heading styles) */
 .post-body {
   color: #2b4766;
   font-size: 17px;
@@ -240,4 +240,12 @@ summary::-webkit-details-marker {
 .post-head > * {
   position: relative;
   z-index: 1;
+}
+
+/* Photos written inside the text of a post (Markdown ![](...)) */
+.post-body img {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  border-radius: var(--radius-box);
 }

@@ -1,13 +1,11 @@
 {
-  "name": "futnet-site",
+  "name": "futnet-italia",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/fetch-drive.mjs --if-stale",
     "dev": "astro dev",
-    "prebuild": "node scripts/fetch-drive.mjs",
-    "build": "astro build",
+    "build": "astro check && astro build",
     "preview": "astro preview"
   },
   "dependencies": {
@@ -19,6 +17,8 @@
     "tailwindcss": "^4.0.0"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "sharp": "^0.34.5",
     "typescript": "^5.5.0"
   }
 }

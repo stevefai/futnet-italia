@@ -1,11 +1,12 @@
 # Futnet Italia – Calcio Tenis website
 
-Astro + Tailwind CSS + DaisyUI (no React, almost no JavaScript in the browser). News and events are written as **Google Docs** and the
-carousel photos are put in a **Google Drive folder**; the site reads them when it is built and rebuilds itself automatically every
-30 minutes (or instantly with one click).
+Astro + Tailwind CSS + DaisyUI (no React, almost no JavaScript in the browser), published on GitHub Pages.
+All content lives in this repository and is edited **by asking Claude** (Claude Code on claude.ai/code or the
+Claude desktop app, connected to this repository). The rules Claude follows are in `CLAUDE.md`, and the
+step-by-step "add a post" flow is the `new-post` skill in `.claude/skills/`.
 
 ```
-Google Drive (Docs + photos)  ->  Apps Script  ->  (GitHub Action every 30 min)  ->  Astro build  ->  GitHub Pages
+organiser  ->  Claude (writes the files, checks the build)  ->  push to main  ->  GitHub Action  ->  GitHub Pages
 ```
 
 ## 1. Run it on your computer
@@ -15,71 +16,35 @@ npm install
 npm run dev        # http://localhost:4321  (Italian)   /en/  (English)
 ```
 
-Without Google Drive connected it shows the sample news in `src/data/news.sample.json` and no carousel photos.
-To use the real content, copy `.env.example` to `.env` and fill in `PHOTOS_API_URL` and `PHOTOS_API_TOKEN` (see below).
+`npm run build` type-checks the content (a wrong date or a missing photo stops the build) and builds `dist/`.
 
-## 2. Content from Google Drive
+## 2. Content
 
-Everything comes through one small Google Apps Script (`apps-script/site.gs`) that runs in your Google account, reads two
-**private** Drive folders and answers only requests that carry a secret token.
+| what | where |
+|---|---|
+| News & events | `src/content/news/<YYYY-MM-DD-name>/`: `it.md`, `en.md` and the photos (format in `CLAUDE.md`) |
+| Carousel photos | `src/assets/gallery/` |
+| New photos from the organiser | `inbox/` (uploaded on GitHub, moved into place by Claude) |
 
-| what | where | how it appears |
-|---|---|---|
-| News & events | Drive folder of Google Docs, one Doc per post | a preview card + its own page (`/novita/...`, `/en/news/...`) |
-| Carousel photos | Drive folder of JPG/PNG/WebP/AVIF files | the "Photos" section |
-
-### Writing a news item or event
-
-Open the Doc called **MODEL** in the news folder, make a copy (it stays in the same folder), rename it and fill it in.
-The full rules are in `apps-script/NEWS-TEMPLATE.md`; in short:
-
-- The newest Doc (by creation date) is shown first.
-- A post with an **event date** in the small table is an event; without one it is news (delete the table).
-- Text in an "Italiano" and an "English" section (Heading 1), title as Heading 2. A missing language shows the other one.
-- One photo anywhere in the Doc. Bold, italic, links and lists are kept.
-- To hide a post, move its Doc out of the folder (e.g. into a subfolder).
-
-### One-time setup
-
-1. Make a long random token. In a terminal: `openssl rand -hex 24` (copy the result).
-2. Go to <https://script.google.com> > **New project**. Delete the sample code and paste the whole of `apps-script/site.gs`.
-   Replace `PASTE_A_LONG_RANDOM_TEXT_HERE` with the token. Check `PHOTOS_FOLDER_ID` and `NEWS_FOLDER_ID` are the ids of your
-   two folders (the last part of each folder address).
-3. **Deploy > New deployment** > type **Web app** > Execute as **Me** > Who has access **Anyone** > Deploy.
-   Approve the permission request (Google warns the app is unverified: *Advanced > Go to ... (unsafe)* - it is your own script).
-   Copy the **Web app URL** (ends in `/exec`).
-4. Still in the editor: choose the function **authorize** in the dropdown above the code and press **Run**. Google asks for
-   permission to read your Drive files and Google Docs: allow it (Advanced > Go to ... (unsafe) > Allow). Without this the
-   news cannot be read. Then **Deploy > Manage deployments > Edit > New version > Deploy** again.
-5. Check it: open `<web app URL>?token=<token>&news=list` in a browser; you should see your Docs listed.
-6. Put it online (next section) and add the two values to GitHub.
-
-For local testing put the same two values in `.env` (`PHOTOS_API_URL`, `PHOTOS_API_TOKEN`).
-
-### Good to know
-
-- Photos are ordered newest upload first. Removing a photo from the folder removes it from the site.
-- iPhone HEIC photos are ignored (the build prints a warning); export them as JPG first.
-- Changed the script code? Use **Deploy > Manage deployments > Edit > New version**; the URL stays the same.
-- If the URL or token is wrong the build **fails on purpose** and the previous site stays online. A single broken Doc or
-  photo is skipped with a warning in the build log (Actions > the run > "Run npm run build").
-- Photos you put by hand in `src/assets/gallery/` also appear; only files starting with `drive-` are replaced at every build.
+Photos are copied with `node scripts/add-photo.mjs <photo> <destination.jpg>` (max 2000 px, JPG).
 
 ## 3. Put it online (GitHub Pages)
 
 1. Create a GitHub repository and push this folder (branch `main`).
 2. Repository **Settings > Pages > Build and deployment > Source: GitHub Actions**.
-3. Repository **Settings > Secrets and variables > Actions**:
-   - **Variables** tab: `PHOTOS_API_URL` – the Apps Script web app URL
-   - **Secrets** tab: `PHOTOS_API_TOKEN` – the token
-   - **Variables** tab: `BASE_PATH` – `/<repository-name>/` while using the github.io address (remove it when the domain is connected)
-   - **Variables** tab: `SITE_URL` – the full address, e.g. `https://<user>.github.io/<repository-name>` (later `https://futnetitalia.it`)
-4. The **Actions** tab runs "Build and deploy" on every push, every 30 minutes, and on the **Run workflow** button.
+3. Repository **Settings > Secrets and variables > Actions > Variables**:
+   - `BASE_PATH` – `/<repository-name>/` while using the github.io address (remove it when the domain is connected)
+   - `SITE_URL` – the full address, e.g. `https://<user>.github.io/<repository-name>` (later `https://futnetitalia.it`)
+4. Every push to `main` builds and publishes the site (Actions tab; **Run workflow** rebuilds by hand).
 
-> GitHub switches off scheduled runs in public repositories after ~60 days without any repository activity.
-> If new posts stop appearing, open Actions and re-enable the workflow (or push any small change).
+## 4. Giving the organiser access
 
-## 4. Custom domain (later)
+1. Invite them to the repository (Settings > Collaborators, role **Write**).
+2. They sign in to claude.ai with a paid plan, open **Code**, connect GitHub and pick this repository.
+3. They type what they want, e.g. "Aggiungi un evento: torneo a Curtatone il 15 novembre alle 15".
+   Optional: protect `main` for files outside `src/content`, `src/assets` and `inbox` if you want to review layout changes.
+
+## 5. Custom domain (later)
 
 Buy the domain, then Settings > Pages > Custom domain, and add the DNS records GitHub shows.
 Remove the `BASE_PATH` variable and set `SITE_URL` to the new address.
@@ -101,12 +66,6 @@ Remove the `BASE_PATH` variable and set `SITE_URL` to the new address.
 | fonts | `src/styles/global.css` (`@theme`) and the `@fontsource` imports in `src/layouts/Layout.astro` |
 | layout of a section | `src/components/*.astro` (Tailwind and DaisyUI classes) |
 | the few lines of browser JavaScript (phone menu, language links, "Show older posts") | bottom of `src/layouts/Layout.astro` |
-| news / events | Google Docs in the Drive news folder |
+| news / events | `src/content/news/` |
 | players and their photos | `src/data/players.ts`; photos go in `src/assets/players/` |
-| the photo carousel | the Google Drive photo folder |
-
-## Optional: publish instantly after editing
-
-To avoid the 30 minute wait, run the workflow by hand (Actions > Build and deploy > Run workflow), or add a function to the Apps Script
-that calls `POST https://api.github.com/repos/<user>/<repo>/actions/workflows/deploy.yml/dispatches` with
-`{"ref":"main"}` and a fine-grained GitHub token (Actions: write). This is only worth it if a 30 minute delay is too slow.
+| the photo carousel | `src/assets/gallery/` |

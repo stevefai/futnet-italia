@@ -2,7 +2,6 @@
 import { getImage } from 'astro:assets';
 import { getUi, postPath } from '../content';
 import { assetUrl, formatDate } from '../lib/format';
-import { newsImage } from '../lib/news-images';
 import type { Lang, Post } from '../lib/types';
 
 interface Props {
@@ -18,7 +17,7 @@ const isEvent = post.type === 'event';
 const title = post.title[lang];
 const excerpt = post.excerpt[lang];
 const href = assetUrl(postPath(lang, post.slug[lang]));
-const image = newsImage(post.image);
+const image = post.cover;
 // the whole picture is shown (posters carry their own text), so a small file is enough
 const thumb = image ? await getImage({ src: image, width: 480 }) : null;
 

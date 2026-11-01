@@ -3,12 +3,5 @@ dist/
 .astro/
 .env
 
-# photos downloaded from Google Drive at build time
-src/assets/gallery/drive-*
-
-# news & events downloaded from Google Docs at build time
-src/data/news.generated.json
-src/assets/news/doc-*
-
 # design sketches (local only)
 .design-sketches/
